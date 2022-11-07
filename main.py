@@ -99,9 +99,6 @@ def move_player():
 	if check_collision(player["x"], test_y):
 		player["y"] = test_y
 
-def calculate():
-	move_player()
-
 
 def draw_map():
 	for y_block in range(len(map)):
@@ -118,69 +115,64 @@ def cast_rays(dir, bubble):
 	ray_y = 0
 	ray_xjump = 0
 	ray_yjump = 0
-	render_distance = 5
 	rl_dist = 1000
 	ud_dist = 1000
+	tan_dir = math.tan(dir)
 	try:
 		if dir < pi/2 or dir > pi*1.5: #rightward
 			ray_x = math.ceil(player["x"])
 			ray_xjump = 1
-			ray_y = math.tan(dir) * (ray_x - player["x"]) + player["y"]
-			ray_yjump = math.tan(dir) * (ray_xjump)
+			ray_y = tan_dir * (ray_x - player["x"]) + player["y"]
+			ray_yjump = tan_dir * (ray_xjump)
 			while map[math.floor(ray_y)][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 		elif dir + pi/2 > pi: #leftward
 			ray_x = math.floor(player["x"])
 			ray_xjump = -1
-			ray_y = math.tan(dir) * (ray_x - player["x"]) + player["y"]
-			ray_yjump = math.tan(dir) * (ray_xjump)
+			ray_y = tan_dir * (ray_x - player["x"]) + player["y"]
+			ray_yjump = tan_dir * (ray_xjump)
 			while map[math.floor(ray_y)][math.floor(ray_x) - 1] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 #		gfxdraw.line(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(ray_x * block_size), int(ray_y * block_size), (255, 255, 255))
-		rl_dist = math.sqrt((ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2) * bubble
+		rl_dist = (ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2
 	except:
 		pass
 
 	try:
-		ray_x = 0
-		ray_y = 0
 		if dir < pi: #upward
 			ray_y = math.ceil(player["y"])
-			ray_x = (ray_y - player["y"]) / math.tan(dir) + player["x"]
+			ray_x = (ray_y - player["y"]) / tan_dir + player["x"]
 			ray_yjump = 1
-			ray_xjump = (ray_yjump) / math.tan(dir)
+			ray_xjump = (ray_yjump) / tan_dir
 			while map[math.floor(ray_y)][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 		elif dir > pi: #downward
 			ray_y = math.floor(player["y"])
-			ray_x = (ray_y - player["y"]) / math.tan(dir) + player["x"]
+			ray_x = (ray_y - player["y"]) / tan_dir + player["x"]
 			ray_yjump = -1
-			ray_xjump = (ray_yjump) / math.tan(dir)
+			ray_xjump = (ray_yjump) / tan_dir
 			while map[math.floor(ray_y) - 1][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 #		gfxdraw.line(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(ray_x * block_size), int(ray_y * block_size), (0, 255, 0))
-		ud_dist = math.sqrt((ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2) * bubble
+		ud_dist = (ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2
 	except:
 		pass
-	return [min(rl_dist, ud_dist), min(rl_dist, ud_dist) == rl_dist]
+	return [math.sqrt(min(rl_dist, ud_dist)) * bubble, min(rl_dist, ud_dist) == rl_dist]
 
 def draw_verticals(rays):
 	for ray in range(len(rays)):
-		dist, is_left = rays[ray]
-		block_height = 0
-		dist += 0.1
-		try:
-			block_height = pygame.display.get_window_size()[0]/dist
-		except:
-			block_height = 0
-		gfxdraw.line(screen, ray, int(pygame.display.get_window_size()[1]/2 - block_height/2), ray, int(pygame.display.get_window_size()[1]/2 + block_height/2), (0, 0, 255) if is_left else (64, 64, 255))
+		[dist, is_left] = rays[ray]
+		dist += 0.05 # we don't want any dist values equal to or too close to 0
+		block_height = screen_dimensions[0]/dist
+		gfxdraw.box(screen, pygame.Rect(ray * resolution, int(screen_dimensions[1]/2 - block_height/2), resolution, block_height), (0, 0, 255) if is_left else (64, 64, 255))
 
 
 def draw():
+	global screen_dimensions
 	screen_dimensions = pygame.display.get_window_size()
 	screen.fill((128, 128, 200))
 	gfxdraw.box(screen, pygame.Rect(0, screen_dimensions[1]/2, screen_dimensions[0], screen_dimensions[1]/2), (230, 230, 230))
@@ -195,12 +187,10 @@ def draw():
 		angle += pi * 2
 		angle %= pi * 2
 		new_ray = cast_rays(angle, math.cos(i))
-		for _ in range(resolution):
-			ray_lengths.append(new_ray)
+		ray_lengths.append(new_ray)
 		i += ray_angle_step
 	draw_verticals(ray_lengths)
 	pygame.display.flip()
-
 
 
 while 1:
@@ -210,5 +200,5 @@ while 1:
 			do_keys(event.key, True)
 		elif event.type == pygame.KEYUP:
 			do_keys(event.key, False)
-	calculate()
+	move_player()
 	draw()
