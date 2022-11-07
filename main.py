@@ -11,7 +11,7 @@ pi = math.pi
 
 fov = pi / 3
 resolution = 8 # ray spacing (to reduce lag)
-angle_float_precision = 3 # Balances out the memoized amount of ray directions
+angle_float_precision = 3 # Balances out the amount of memoized ray tangents
 tan_dir_array = []
 
 for i in range(math.ceil(pi*2 * (10 ** angle_float_precision))): # Memoize all possible ray tangents
@@ -25,7 +25,7 @@ map = [
 	[1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 1, 0, 1, 0, 0, 0, 0, 1],
 	[1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-	[1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+	[1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
