@@ -10,16 +10,22 @@ pygame.init()
 pi = math.pi
 
 fov = pi / 3
-resolution = 16 # ray spacing (to reduce lag)
+resolution = 8 # ray spacing (to reduce lag)
+angle_float_precision = 3 # Balances out the memoized amount of ray directions
+tan_dir_array = []
 
+for i in range(math.ceil(pi*2 * (10 ** angle_float_precision))): # Memoize all possible ray tangents
+	tan_dir_array.append(round(math.tan(i * 10 ** -angle_float_precision), 3))
+
+print(len(tan_dir_array))
 
 map = [
 	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-	[1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 1, 0, 1, 0, 0, 0, 0, 1],
+	[1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+	[1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -68,6 +74,9 @@ def do_keys(key, val):
 			left_down = val
 		case pygame.K_RIGHT:
 			right_down = val
+		case pygame.K_q:
+			if val:
+				print(len(tan_dir_array)) # test
 
 def check_collision(x, y):
 	return map[int(y)][int(x)] in passable_blocks
@@ -117,7 +126,7 @@ def cast_rays(dir, bubble):
 	ray_yjump = 0
 	rl_dist = 1000
 	ud_dist = 1000
-	tan_dir = math.tan(dir)
+	tan_dir = tan_dir_array[int(dir * 10 ** angle_float_precision)] # Reference the tangent memo
 	try:
 		if dir < pi/2 or dir > pi*1.5: #rightward
 			ray_x = math.ceil(player["x"])
@@ -183,9 +192,7 @@ def draw():
 	i = -fov/2
 	ray_lengths = []
 	while i < fov/2:
-		angle = player["direction"] + i
-		angle += pi * 2
-		angle %= pi * 2
+		angle = round((player["direction"] + i + pi * 2) % (pi * 2), angle_float_precision)
 		new_ray = cast_rays(angle, math.cos(i))
 		ray_lengths.append(new_ray)
 		i += ray_angle_step
