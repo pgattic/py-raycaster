@@ -1,7 +1,7 @@
 import sys, pygame, math
 from pygame import gfxdraw
 
-version = "0.1.2"
+version = "0.1.4"
 
 # Global Variables and Constants
 pi = math.pi
@@ -26,7 +26,7 @@ map = [
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -39,15 +39,15 @@ map = [
 ## Block defs
 passable_blocks = [0]
 color_defs = [
-	[0, 0],
-	[0, 0],
-	[0, .70],
-	[120, .70],
-	[240, .70],
-	[60, .70],
-	[180, .40],
-	[300, .70],
-	[32, .70],
+	[0, 0, 0],
+	[0, 0, 1],
+	[0, .70, 0.5],
+	[120, .70, 0.5],
+	[240, .70, 0.5],
+	[60, .70, 0.5],
+	[180, .40, 0.5],
+	[300, .70, 0.5],
+	[32, .70, 0.5],
 ]
 
 dimensions = (len(map[0]), len(map))
@@ -67,6 +67,7 @@ movement_speed = 0.05
 turn_speed = 0.05
 
 w_down = a_down = s_down = d_down = left_down = right_down = False
+transparency = True
 
 
 pygame.init()
@@ -76,8 +77,8 @@ delta = 0
 screen = pygame.display.set_mode(screen_dimensions, pygame.RESIZABLE)
 pygame.display.set_caption("Raycaster Test v" + version)
 
-def hsl2rgb(hsl):
-	[h, s, l] = hsl
+def hsla2rgba(hsla):
+	[h, s, l, a] = hsla
 	rn = gn = bn = 0
 	c = (1 - abs(2 * l - 1)) * s
 	x = c * (1 - abs((h / 60) % 2 - 1))
@@ -88,12 +89,12 @@ def hsl2rgb(hsl):
 	elif h < 240: [rn, gn, bn] = [0, x, c]
 	elif h < 300: [rn, gn, bn] = [x, 0, c]
 	elif h < 360: [rn, gn, bn] = [c, 0, x]
-	return [(rn + m)*255, (gn+m) * 255, (bn + m) * 255]
+	return [(rn + m)*255, (gn+m) * 255, (bn + m) * 255, a * 255]
 
 
 
 def do_keys(key, val):
-	global w_down, a_down, s_down, d_down, left_down, right_down, fov
+	global w_down, a_down, s_down, d_down, left_down, right_down, fov, transparency
 	match key:
 		case pygame.K_w:
 			w_down = val
@@ -107,6 +108,8 @@ def do_keys(key, val):
 			left_down = val
 		case pygame.K_RIGHT:
 			right_down = val
+		case pygame.K_q:
+			if val: transparency = not transparency
 		case pygame.K_EQUALS:
 			if val: fov += pi/12
 		case pygame.K_MINUS:
@@ -157,7 +160,7 @@ def draw_player():
 	gfxdraw.filled_circle(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(block_size / 8), (0, 100, 0))
 	gfxdraw.line(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(player["x"] * block_size + math.cos(player["direction"])*20), int(player["y"] * block_size + math.sin(player["direction"])*20), (255, 255, 255))
 
-def cast_rays(dir, bubble):
+def cast_rays(x, y, dir, bubble):
 	ray_x = 0
 	ray_y = 0
 	ray_xjump = 0
@@ -167,25 +170,29 @@ def cast_rays(dir, bubble):
 	tan_dir = tan_dir_array[int(dir * 10 ** angle_float_precision)] # Reference the tangent memo instead of calculating the tangent on the fly
 	block_type1 = 0
 	block_type2 = 0
+	end_coords1 = []
+	end_coords2 = []
 	try:
 		if dir < pi/2 or dir > pi*1.5: #rightward
-			ray_x = math.ceil(player["x"])
+			ray_x = math.ceil(x)
 			ray_xjump = 1
-			ray_y = tan_dir * (ray_x - player["x"]) + player["y"]
+			ray_y = tan_dir * (ray_x - x) + y
 			ray_yjump = tan_dir * (ray_xjump)
 			while map[math.floor(ray_y)][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 			block_type1 = map[math.floor(ray_y)][math.floor(ray_x)]
+			end_coords1 = [ray_x+0.01, ray_y]
 		elif dir + pi/2 > pi: #leftward
-			ray_x = math.floor(player["x"])
+			ray_x = math.floor(x)
 			ray_xjump = -1
-			ray_y = tan_dir * (ray_x - player["x"]) + player["y"]
+			ray_y = tan_dir * (ray_x - x) + y
 			ray_yjump = tan_dir * (ray_xjump)
 			while map[math.floor(ray_y)][math.floor(ray_x) - 1] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 			block_type1 = map[math.floor(ray_y)][math.floor(ray_x) - 1]
+			end_coords1 = [ray_x-0.01, ray_y]
 #		gfxdraw.line(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(ray_x * block_size), int(ray_y * block_size), (255, 255, 255))
 		rl_dist = (ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2
 	except:
@@ -193,40 +200,53 @@ def cast_rays(dir, bubble):
 
 	try:
 		if dir < pi: #upward
-			ray_y = math.ceil(player["y"])
-			ray_x = (ray_y - player["y"]) / tan_dir + player["x"]
+			ray_y = math.ceil(y)
+			ray_x = (ray_y - y) / tan_dir + x
 			ray_yjump = 1
 			ray_xjump = (ray_yjump) / tan_dir
 			while map[math.floor(ray_y)][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 			block_type2 = map[math.floor(ray_y)][math.floor(ray_x)]
+			end_coords2 = [ray_x, ray_y+0.01]
 		elif dir > pi: #downward
-			ray_y = math.floor(player["y"])
-			ray_x = (ray_y - player["y"]) / tan_dir + player["x"]
+			ray_y = math.floor(y)
+			ray_x = (ray_y - y) / tan_dir + x
 			ray_yjump = -1
 			ray_xjump = (ray_yjump) / tan_dir
 			while map[math.floor(ray_y) - 1][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
 			block_type2 = map[math.floor(ray_y) - 1][math.floor(ray_x)]
+			end_coords2 = [ray_x, ray_y-0.01]
 #		gfxdraw.line(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(ray_x * block_size), int(ray_y * block_size), (0, 255, 0))
 		ud_dist = (ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2
 	except:
 		pass
-	is_rl = min(rl_dist, ud_dist) == rl_dist
-	return [math.sqrt(min(rl_dist, ud_dist)) * bubble, is_rl, block_type1 if is_rl else block_type2]
+	minimum = min(rl_dist, ud_dist)
+	end_type = 0
+	end_coords = []
+	if minimum == rl_dist:
+		is_rl = True
+		end_type = block_type1
+		end_coords = end_coords1
+	else:
+		is_rl = False
+		end_type = block_type2
+		end_coords = end_coords2
+	return [math.sqrt(minimum) * bubble, is_rl, end_type, end_coords]
 
 def draw_verticals(rays):		# Draws the vertical "bars" onto the screen based on the ray distances (with some fancy color manipulation to simulate distance)
 	for ray in range(len(rays)):
-		[dist, is_left, block_type] = rays[ray]
+		[dist, is_left, block_type, coords, index] = rays[ray]
 		dist += 0.05 # we don't want any dist values equal to or too close to 0
 		block_height = screen_dimensions[0]/dist * ((pi/3)/fov)
 		darkness = (0.55 if is_left else 0.65) - dist / 100
 		color = list(color_defs[block_type])
-		color.append(darkness)
-		display_color = hsl2rgb(color)
-		gfxdraw.box(screen, pygame.Rect(ray * resolution, int(screen_dimensions[1]/2 - block_height/2), resolution, block_height), display_color)
+		color.insert(2, darkness)
+		display_color = hsla2rgba(color)
+		if not transparency: display_color.pop()
+		gfxdraw.box(screen, pygame.Rect(index * resolution, int(screen_dimensions[1]/2 - block_height/2), resolution, block_height), display_color)
 
 
 def draw():
@@ -236,15 +256,22 @@ def draw():
 	gfxdraw.box(screen, pygame.Rect(0, screen_dimensions[1]/2, screen_dimensions[0], screen_dimensions[1]/2), (238, 238, 238))
 #	draw_map()
 #	draw_player()
-	num_rays = screen_dimensions[0] / resolution
+	num_rays = math.ceil(screen_dimensions[0] / resolution)
 	ray_angle_step = fov / num_rays
 	i = -fov/2
 	ray_lengths = []
-	while i < fov/2:
-		angle = (player["direction"] + i + pi * 2) % (pi * 2)
-		new_ray = cast_rays(angle, math.cos(i))
-		ray_lengths.append(new_ray)
-		i += ray_angle_step
+	for i in range(num_rays):
+		relative_angle = (i/num_rays) * fov - fov/2
+		angle = (player["direction"] + relative_angle + pi * 2) % (pi * 2)
+		new_ray = cast_rays(player["x"], player["y"], angle, math.cos(relative_angle))
+		new_ray.append(i)
+		ray_lengths.insert(0, new_ray)
+		while transparency and color_defs[new_ray[2]][2] < 1:
+			new_ray_test = cast_rays(new_ray[3][0], new_ray[3][1], angle, math.cos(relative_angle))
+			if new_ray_test[2] != new_ray[2]:
+				new_ray_test.append(i)
+				ray_lengths.insert(0, new_ray_test)
+			new_ray = new_ray_test
 	draw_verticals(ray_lengths)
 
 	# crosshair
