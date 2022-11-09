@@ -199,7 +199,7 @@ def draw():
 
 def main():
 	while 1:
-		delta = game_clock.tick(400)
+		delta = game_clock.tick(60)
 		fps = game_clock.get_fps()
 		pygame.display.set_caption(f"Raycaster Test v{version} - FPS: {math.floor(fps)}")
 		for event in pygame.event.get():
