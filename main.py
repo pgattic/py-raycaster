@@ -38,16 +38,16 @@ map = [
 
 ## Block defs
 passable_blocks = [0]
-block_colors = [
-	[255, 255, 255],
-	[220, 220, 220],
-	[230, 64, 64],
-	[64, 230, 64],
-	[64, 64, 255],
-	[255, 230, 64],
-	[64, 255, 255],
-	[255, 64, 255],
-	[255, 160, 64]
+color_defs = [
+	[0, 0],
+	[0, 0],
+	[0, .70],
+	[120, .70],
+	[240, .70],
+	[60, .70],
+	[180, .40],
+	[300, .70],
+	[32, .70],
 ]
 
 dimensions = (len(map[0]), len(map))
@@ -76,12 +76,20 @@ delta = 0
 screen = pygame.display.set_mode(screen_dimensions, pygame.RESIZABLE)
 pygame.display.set_caption("Raycaster Test v" + version)
 
-def color_darken(col, filter):
-	for i in range(len(col)):
-		col[i] *= filter
-		if col[i] < 0: col[i] = 0
-		if col[i] > 255: col[i] = 255
-	return col
+def hsl2rgb(hsl):
+	[h, s, l] = hsl
+	rn = gn = bn = 0
+	c = (1 - abs(2 * l - 1)) * s
+	x = c * (1 - abs((h / 60) % 2 - 1))
+	m = l - c/2
+	if h < 60:  [rn, gn, bn] = [c, x, 0]
+	elif h < 120: [rn, gn, bn] = [x, c, 0]
+	elif h < 180: [rn, gn, bn] = [0, c, x]
+	elif h < 240: [rn, gn, bn] = [0, x, c]
+	elif h < 300: [rn, gn, bn] = [x, 0, c]
+	elif h < 360: [rn, gn, bn] = [c, 0, x]
+	return [(rn + m)*255, (gn+m) * 255, (bn + m) * 255]
+
 
 
 def do_keys(key, val):
@@ -206,9 +214,10 @@ def draw_verticals(rays):		# Draws the vertical "bars" onto the screen based on 
 		[dist, is_left, block_type] = rays[ray]
 		dist += 0.05 # we don't want any dist values equal to or too close to 0
 		block_height = screen_dimensions[0]/dist
-		darkness = (0.9 if is_left else 1) - dist / 40
-		color = list(block_colors[block_type])
-		display_color = color_darken(color, darkness)
+		darkness = (0.55 if is_left else 0.65) - dist / 100
+		color = list(color_defs[block_type])
+		color.append(darkness)
+		display_color = hsl2rgb(color)
 		gfxdraw.box(screen, pygame.Rect(ray * resolution, int(screen_dimensions[1]/2 - block_height/2), resolution, block_height), display_color)
 
 
@@ -216,7 +225,7 @@ def draw():
 	global screen_dimensions
 	screen_dimensions = pygame.display.get_window_size()
 	screen.fill((135, 206, 235))
-	gfxdraw.box(screen, pygame.Rect(0, screen_dimensions[1]/2, screen_dimensions[0], screen_dimensions[1]/2), (230, 230, 230))
+	gfxdraw.box(screen, pygame.Rect(0, screen_dimensions[1]/2, screen_dimensions[0], screen_dimensions[1]/2), (238, 238, 238))
 #	draw_map()
 #	draw_player()
 	num_rays = screen_dimensions[0] / resolution
