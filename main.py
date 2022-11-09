@@ -1,7 +1,7 @@
 import sys, pygame, math
 from pygame import gfxdraw
 
-version = "0.0.5"
+version = "0.1.0"
 
 # Global Variables and Constants
 pi = math.pi
@@ -18,20 +18,37 @@ for i in range(math.ceil(pi*2 * (10 ** angle_float_precision))): # Memoize all p
 	tan_dir_array.append(round(math.tan(i * 10 ** -angle_float_precision), tan_float_precision))
 
 map = [
-	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 1, 0, 1, 0, 0, 0, 0, 1],
-	[1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-	[1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
 
 ## Block defs
 passable_blocks = [0]
+block_colors = [
+	[255, 255, 255],
+	[220, 220, 220],
+	[230, 64, 64],
+	[64, 230, 64],
+	[64, 64, 255],
+	[255, 230, 64],
+	[64, 255, 255],
+	[255, 64, 255],
+	[255, 160, 64]
+]
 
 dimensions = (len(map[0]), len(map))
 
@@ -40,9 +57,9 @@ block_size = 64
 screen_dimensions = (800, 600)
 
 player = {
-	"x": dimensions[0]/2, 
-	"y": dimensions[1]/2,
-	"direction": 0,			# Radians
+	"x": 1.5, 
+	"y": 14.5,
+	"direction": pi/2 * 3,			# Radians
 	"forward_vel": 0,		# Pixels per frame
 }
 
@@ -58,6 +75,13 @@ game_clock = pygame.time.Clock()
 delta = 0
 screen = pygame.display.set_mode(screen_dimensions, pygame.RESIZABLE)
 pygame.display.set_caption("Raycaster Test v" + version)
+
+def color_darken(col, filter):
+	for i in range(len(col)):
+		col[i] *= filter
+		if col[i] < 0: col[i] = 0
+		if col[i] > 255: col[i] = 255
+	return col
 
 
 def do_keys(key, val):
@@ -125,6 +149,8 @@ def cast_rays(dir, bubble):
 	rl_dist = 1000
 	ud_dist = 1000
 	tan_dir = tan_dir_array[int(dir * 10 ** angle_float_precision)] # Reference the tangent memo instead of calculating the tangent on the fly
+	block_type1 = 0
+	block_type2 = 0
 	try:
 		if dir < pi/2 or dir > pi*1.5: #rightward
 			ray_x = math.ceil(player["x"])
@@ -134,6 +160,7 @@ def cast_rays(dir, bubble):
 			while map[math.floor(ray_y)][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
+			block_type1 = map[math.floor(ray_y)][math.floor(ray_x)]
 		elif dir + pi/2 > pi: #leftward
 			ray_x = math.floor(player["x"])
 			ray_xjump = -1
@@ -142,6 +169,7 @@ def cast_rays(dir, bubble):
 			while map[math.floor(ray_y)][math.floor(ray_x) - 1] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
+			block_type1 = map[math.floor(ray_y)][math.floor(ray_x) - 1]
 #		gfxdraw.line(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(ray_x * block_size), int(ray_y * block_size), (255, 255, 255))
 		rl_dist = (ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2
 	except:
@@ -156,6 +184,7 @@ def cast_rays(dir, bubble):
 			while map[math.floor(ray_y)][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
+			block_type2 = map[math.floor(ray_y)][math.floor(ray_x)]
 		elif dir > pi: #downward
 			ray_y = math.floor(player["y"])
 			ray_x = (ray_y - player["y"]) / tan_dir + player["x"]
@@ -164,24 +193,29 @@ def cast_rays(dir, bubble):
 			while map[math.floor(ray_y) - 1][math.floor(ray_x)] in passable_blocks:
 				ray_x += ray_xjump
 				ray_y += ray_yjump
+			block_type2 = map[math.floor(ray_y) - 1][math.floor(ray_x)]
 #		gfxdraw.line(screen, int(player["x"] * block_size), int(player["y"] * block_size), int(ray_x * block_size), int(ray_y * block_size), (0, 255, 0))
 		ud_dist = (ray_x - player["x"]) ** 2 + (ray_y - player["y"]) ** 2
 	except:
 		pass
-	return [math.sqrt(min(rl_dist, ud_dist)) * bubble, min(rl_dist, ud_dist) == rl_dist]
+	is_rl = min(rl_dist, ud_dist) == rl_dist
+	return [math.sqrt(min(rl_dist, ud_dist)) * bubble, is_rl, block_type1 if is_rl else block_type2]
 
-def draw_verticals(rays):
+def draw_verticals(rays):		# Draws the vertical "bars" onto the screen based on the ray distances (with some fancy color manipulation to simulate distance)
 	for ray in range(len(rays)):
-		[dist, is_left] = rays[ray]
+		[dist, is_left, block_type] = rays[ray]
 		dist += 0.05 # we don't want any dist values equal to or too close to 0
 		block_height = screen_dimensions[0]/dist
-		gfxdraw.box(screen, pygame.Rect(ray * resolution, int(screen_dimensions[1]/2 - block_height/2), resolution, block_height), (0, 0, 255) if is_left else (64, 64, 255))
+		darkness = (0.9 if is_left else 1) - dist / 40
+		color = list(block_colors[block_type])
+		display_color = color_darken(color, darkness)
+		gfxdraw.box(screen, pygame.Rect(ray * resolution, int(screen_dimensions[1]/2 - block_height/2), resolution, block_height), display_color)
 
 
 def draw():
 	global screen_dimensions
 	screen_dimensions = pygame.display.get_window_size()
-	screen.fill((128, 128, 200))
+	screen.fill((135, 206, 235))
 	gfxdraw.box(screen, pygame.Rect(0, screen_dimensions[1]/2, screen_dimensions[0], screen_dimensions[1]/2), (230, 230, 230))
 #	draw_map()
 #	draw_player()
@@ -195,6 +229,11 @@ def draw():
 		ray_lengths.append(new_ray)
 		i += ray_angle_step
 	draw_verticals(ray_lengths)
+
+	# crosshair
+	gfxdraw.box(screen, pygame.Rect(screen_dimensions[0] / 2 - 1, screen_dimensions[1] / 2 - 8, 2, 16), (255, 255, 255))
+	gfxdraw.box(screen, pygame.Rect(screen_dimensions[0] / 2 - 8, screen_dimensions[1] / 2 - 1, 16, 2), (255, 255, 255))
+
 	pygame.display.flip()
 
 def main():
