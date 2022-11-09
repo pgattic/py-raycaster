@@ -1,7 +1,7 @@
 import sys, pygame, math
 from pygame import gfxdraw
 
-version = "0.1.0"
+version = "0.1.2"
 
 # Global Variables and Constants
 pi = math.pi
@@ -93,7 +93,7 @@ def hsl2rgb(hsl):
 
 
 def do_keys(key, val):
-	global w_down, a_down, s_down, d_down, left_down, right_down
+	global w_down, a_down, s_down, d_down, left_down, right_down, fov
 	match key:
 		case pygame.K_w:
 			w_down = val
@@ -107,6 +107,14 @@ def do_keys(key, val):
 			left_down = val
 		case pygame.K_RIGHT:
 			right_down = val
+		case pygame.K_EQUALS:
+			if val: fov += pi/12
+		case pygame.K_MINUS:
+			if val: fov -= pi/12
+		case pygame.K_ESCAPE:
+			if val:
+				pygame.quit()
+				sys.exit()
 
 def check_collision(x, y):
 	return map[int(y)][int(x)] in passable_blocks
@@ -213,7 +221,7 @@ def draw_verticals(rays):		# Draws the vertical "bars" onto the screen based on 
 	for ray in range(len(rays)):
 		[dist, is_left, block_type] = rays[ray]
 		dist += 0.05 # we don't want any dist values equal to or too close to 0
-		block_height = screen_dimensions[0]/dist
+		block_height = screen_dimensions[0]/dist * ((pi/3)/fov)
 		darkness = (0.55 if is_left else 0.65) - dist / 100
 		color = list(color_defs[block_type])
 		color.append(darkness)
@@ -249,7 +257,7 @@ def main():
 	while 1:
 		delta = game_clock.tick(60)
 		fps = game_clock.get_fps()
-		pygame.display.set_caption(f"Raycaster Test v{version} - FPS: {math.floor(fps)}")
+		pygame.display.set_caption(f"Raycaster Test v{version} - FPS: {math.floor(fps)} - FOV: {round(fov/pi*180)}")
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT: sys.exit()
 			elif event.type == pygame.KEYDOWN:
