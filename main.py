@@ -1,23 +1,21 @@
 import sys, pygame, math
 from pygame import gfxdraw
 
-version = "0.0.1"
-
-pygame.init()
-
+version = "0.0.5"
 
 # Global Variables and Constants
 pi = math.pi
 
 fov = pi / 3
-resolution = 8 # ray spacing (to reduce lag)
-angle_float_precision = 3 # Balances out the amount of memoized ray tangents
+resolution = 1 # ray spacing (to reduce lag)
+
+
+angle_float_precision = 3 # Decimal places precision to memoize tangent to. lower number = lower precision but smaller array
+tan_float_precision = 3
 tan_dir_array = []
 
 for i in range(math.ceil(pi*2 * (10 ** angle_float_precision))): # Memoize all possible ray tangents
-	tan_dir_array.append(round(math.tan(i * 10 ** -angle_float_precision), 3))
-
-print(len(tan_dir_array))
+	tan_dir_array.append(round(math.tan(i * 10 ** -angle_float_precision), tan_float_precision))
 
 map = [
 	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -48,13 +46,16 @@ player = {
 	"forward_vel": 0,		# Pixels per frame
 }
 
-movement_speed = 0.002
-turn_speed = 0.003
+movement_speed = 0.05
+turn_speed = 0.05
 
 w_down = a_down = s_down = d_down = left_down = right_down = False
 
 
+pygame.init()
 
+game_clock = pygame.time.Clock()
+delta = 0
 screen = pygame.display.set_mode(screen_dimensions, pygame.RESIZABLE)
 pygame.display.set_caption("Raycaster Test v" + version)
 
@@ -74,9 +75,6 @@ def do_keys(key, val):
 			left_down = val
 		case pygame.K_RIGHT:
 			right_down = val
-		case pygame.K_q:
-			if val:
-				print(len(tan_dir_array)) # test
 
 def check_collision(x, y):
 	return map[int(y)][int(x)] in passable_blocks
@@ -126,7 +124,7 @@ def cast_rays(dir, bubble):
 	ray_yjump = 0
 	rl_dist = 1000
 	ud_dist = 1000
-	tan_dir = tan_dir_array[int(dir * 10 ** angle_float_precision)] # Reference the tangent memo
+	tan_dir = tan_dir_array[int(dir * 10 ** angle_float_precision)] # Reference the tangent memo instead of calculating the tangent on the fly
 	try:
 		if dir < pi/2 or dir > pi*1.5: #rightward
 			ray_x = math.ceil(player["x"])
@@ -192,20 +190,26 @@ def draw():
 	i = -fov/2
 	ray_lengths = []
 	while i < fov/2:
-		angle = round((player["direction"] + i + pi * 2) % (pi * 2), angle_float_precision)
+		angle = (player["direction"] + i + pi * 2) % (pi * 2)
 		new_ray = cast_rays(angle, math.cos(i))
 		ray_lengths.append(new_ray)
 		i += ray_angle_step
 	draw_verticals(ray_lengths)
 	pygame.display.flip()
 
+def main():
+	while 1:
+		delta = game_clock.tick(400)
+		fps = game_clock.get_fps()
+		pygame.display.set_caption(f"Raycaster Test v{version} - FPS: {math.floor(fps)}")
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT: sys.exit()
+			elif event.type == pygame.KEYDOWN:
+				do_keys(event.key, True)
+			elif event.type == pygame.KEYUP:
+				do_keys(event.key, False)
+		move_player()
+		draw()
 
-while 1:
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT: sys.exit()
-		elif event.type == pygame.KEYDOWN:
-			do_keys(event.key, True)
-		elif event.type == pygame.KEYUP:
-			do_keys(event.key, False)
-	move_player()
-	draw()
+if __name__ == "__main__":
+	main()
