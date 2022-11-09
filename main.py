@@ -1,7 +1,7 @@
 import sys, pygame, math
 from pygame import gfxdraw
 
-version = "0.1.4"
+version = "0.1.5"
 
 # Global Variables and Constants
 pi = math.pi
@@ -63,11 +63,12 @@ player = {
 	"forward_vel": 0,		# Pixels per frame
 }
 
-movement_speed = 0.05
+movement_speed = 0.1
 turn_speed = 0.05
 
 w_down = a_down = s_down = d_down = left_down = right_down = False
 transparency = True
+multi_block = False # will the rays return multiple consecutive faces of the same transparent color?
 
 
 pygame.init()
@@ -122,27 +123,28 @@ def do_keys(key, val):
 def check_collision(x, y):
 	return map[int(y)][int(x)] in passable_blocks
 
-def move_player():
+def move_player(multiple):
 	[test_x, test_y] = [player["x"], player["y"]]
+	mov_speed = movement_speed * (1 / multiple)
 	if left_down:
-		player["direction"] -= turn_speed
+		player["direction"] -= turn_speed * (1 / multiple)
 	if right_down:
-		player["direction"] += turn_speed
+		player["direction"] += turn_speed * (1 / multiple)
 	player["direction"] += pi * 2
 	player["direction"] %= pi * 2
 
 	if w_down:
-		test_x += math.cos(player["direction"]) * movement_speed
-		test_y += math.sin(player["direction"]) * movement_speed
+		test_x += math.cos(player["direction"]) * mov_speed
+		test_y += math.sin(player["direction"]) * mov_speed
 	if a_down:
-		test_x += math.cos(player["direction"] + pi/2) * -movement_speed
-		test_y += math.sin(player["direction"] + pi/2) * -movement_speed
+		test_x += math.cos(player["direction"] + pi/2) * -mov_speed
+		test_y += math.sin(player["direction"] + pi/2) * -mov_speed
 	if s_down:
-		test_x += math.cos(player["direction"]) * -movement_speed
-		test_y += math.sin(player["direction"]) * -movement_speed
+		test_x += math.cos(player["direction"]) * -mov_speed
+		test_y += math.sin(player["direction"]) * -mov_speed
 	if d_down:
-		test_x += math.cos(player["direction"] + pi/2) * movement_speed
-		test_y += math.sin(player["direction"] + pi/2) * movement_speed
+		test_x += math.cos(player["direction"] + pi/2) * mov_speed
+		test_y += math.sin(player["direction"] + pi/2) * mov_speed
 
 	if check_collision(test_x, player["y"]):
 		player["x"] = test_x
@@ -268,7 +270,7 @@ def draw():
 		ray_lengths.insert(0, new_ray)
 		while transparency and color_defs[new_ray[2]][2] < 1:
 			new_ray_test = cast_rays(new_ray[3][0], new_ray[3][1], angle, math.cos(relative_angle))
-			if new_ray_test[2] != new_ray[2]:
+			if new_ray_test[2] != new_ray[2] or multi_block:
 				new_ray_test.append(i)
 				ray_lengths.insert(0, new_ray_test)
 			new_ray = new_ray_test
@@ -283,6 +285,7 @@ def draw():
 def main():
 	while 1:
 		delta = game_clock.tick(60)
+		speed_coefficient = 16/delta
 		fps = game_clock.get_fps()
 		pygame.display.set_caption(f"Raycaster Test v{version} - FPS: {math.floor(fps)} - FOV: {round(fov/pi*180)}")
 		for event in pygame.event.get():
@@ -291,7 +294,7 @@ def main():
 				do_keys(event.key, True)
 			elif event.type == pygame.KEYUP:
 				do_keys(event.key, False)
-		move_player()
+		move_player(speed_coefficient)
 		draw()
 
 if __name__ == "__main__":

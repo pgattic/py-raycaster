@@ -12,4 +12,4 @@ left/right arrow keys: look around
 
 Esc: quit game
 
-Q: toggle transparency
+Q: toggle block transparency (for certain blocks)
